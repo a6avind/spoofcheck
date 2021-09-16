@@ -2,11 +2,11 @@
 
 This Project is a shameless rip off [spoofcheck](https://github.com/BishopFox/spoofcheck) which was written in python2.
 
-This is my effort to make it compatible with python3
+This is my effort to make it compatible with python3.
 
 A program that checks if a domain can be spoofed from. The program checks SPF and DMARC records for weak configurations that allow spoofing.
 
-Additionally it will alert if the domain has DMARC configuration that sends mail or HTTP requests on failed SPF/DKIM emails.
+Additionally, it will alert if the domain has DMARC configuration that sends mail or HTTP requests on failed SPF/DKIM emails.
 
 ### Usage:
 

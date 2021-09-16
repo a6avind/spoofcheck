@@ -1,8 +1,9 @@
+#!/usr/bin/python3
 import logging
 import sys
 
-import emailprotectionslib.dmarc as dmarclib
-import emailprotectionslib.spf as spflib
+import emailprotectionslib.dmarc as dmarc_lib
+import emailprotectionslib.spf as spf_lib
 from colorama import Fore, Style
 from colorama import init as color_init
 
@@ -108,7 +109,7 @@ def check_spf_all_string(spf_record):
 
 def is_spf_record_strong(domain):
     strong_spf_record = True
-    spf_record = spflib.SpfRecord.from_domain(domain)
+    spf_record = spf_lib.SpfRecord.from_domain(domain)
     if spf_record is not None and spf_record.record is not None:
         output_info("Found SPF record:")
         output_info(str(spf_record.record))
@@ -134,7 +135,7 @@ def is_spf_record_strong(domain):
 
 
 def get_dmarc_record(domain):
-    dmarc = dmarclib.DmarcRecord.from_domain(domain)
+    dmarc = dmarc_lib.DmarcRecord.from_domain(domain)
     if dmarc is not None and dmarc.record is not None:
         output_info("Found DMARC record:")
         output_info(str(dmarc.record))
@@ -196,7 +197,7 @@ def check_dmarc_org_policy(base_record):
         else:
             output_good("No organizational DMARC record")
 
-    except dmarclib.OrgDomainException:
+    except dmarc_lib.OrgDomainException:
         output_good("No organizational DMARC record")
 
     except Exception as e:
