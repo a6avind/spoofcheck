@@ -8,7 +8,7 @@ A program that checks if a domain can be spoofed from. The program checks SPF an
 
 Additionally, it will alert if the domain has DMARC configuration that sends mail or HTTP requests on failed SPF/DKIM emails.
 
-### Usage:
+## Usage
 
 `./spoofcheck.py [DOMAIN]`
 
