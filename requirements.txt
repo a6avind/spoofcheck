@@ -1,4 +1,5 @@
 colorama
-py-emailprotections
 dnslib
+py-emailprotections
 tldextract
+dnspython

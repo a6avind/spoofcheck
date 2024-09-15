@@ -10,243 +10,197 @@ from colorama import init as color_init
 logging.basicConfig(level=logging.INFO)
 
 
-def output_good(line):
-    print(Fore.GREEN + Style.BRIGHT + "[+]" + Style.RESET_ALL, line)
-
-
-def output_indifferent(line):
-    print(Fore.BLUE + Style.BRIGHT + "[*]" + Style.RESET_ALL, line)
-
-
-def output_error(line):
-    print(Fore.RED + Style.BRIGHT + "[-] !!! " +
-          Style.NORMAL, line, Style.BRIGHT + "!!!")
-
-
-def output_bad(line):
-    print(Fore.RED + Style.BRIGHT + "[-]" + Style.RESET_ALL, line)
-
-
-def output_info(line):
-    print(Fore.WHITE + Style.BRIGHT + "[*]" + Style.RESET_ALL, line)
+def output(message, level="info"):
+    colors = {
+        "good": Fore.GREEN + Style.BRIGHT + "[+]" + Style.RESET_ALL,
+        "indifferent": Fore.BLUE + Style.BRIGHT + "[*]" + Style.RESET_ALL,
+        "error": Fore.RED + Style.BRIGHT + "[-] !!! " + Style.NORMAL,
+        "bad": Fore.RED + Style.BRIGHT + "[-]" + Style.RESET_ALL,
+        "info": Fore.WHITE + Style.BRIGHT + "[*]" + Style.RESET_ALL,
+    }
+    print(colors[level], message)
 
 
 def check_spf_redirect_mechanisms(spf_record):
     redirect_domain = spf_record.get_redirect_domain()
-
-    if redirect_domain is not None:
-        output_info("Processing an SPF redirect domain: %s" % redirect_domain)
-
+    if redirect_domain:
+        output(f"Processing an SPF redirect domain: {redirect_domain}", "info")
         return is_spf_record_strong(redirect_domain)
-
-    else:
-        return False
+    return False
 
 
 def check_spf_include_mechanisms(spf_record):
     include_domain_list = spf_record.get_include_domains()
-
     for include_domain in include_domain_list:
-        output_info("Processing an SPF include domain: %s" % include_domain)
-
-        strong_all_string = is_spf_record_strong(include_domain)
-
-        if strong_all_string:
+        output(f"Processing an SPF include domain: {include_domain}", "info")
+        if is_spf_record_strong(include_domain):
             return True
-
     return False
 
 
 def is_spf_redirect_record_strong(spf_record):
-    output_info("Checking SPF redirect domain: %(domain)s" %
-                {"domain": spf_record.get_redirect_domain})
+    output(f"Checking SPF redirect domain: {spf_record.get_redirect_domain()}", "info")
     redirect_strong = spf_record._is_redirect_mechanism_strong()
-    if redirect_strong:
-        output_bad("Redirect mechanism is strong.")
-    else:
-        output_indifferent("Redirect mechanism is not strong.")
-
+    output(
+        (
+            "Redirect mechanism is strong."
+            if redirect_strong
+            else "Redirect mechanism is not strong."
+        ),
+        "bad" if redirect_strong else "indifferent",
+    )
     return redirect_strong
 
 
 def are_spf_include_mechanisms_strong(spf_record):
-    output_info("Checking SPF include mechanisms")
+    output("Checking SPF include mechanisms", "info")
     include_strong = spf_record._are_include_mechanisms_strong()
-    if include_strong:
-        output_bad("Include mechanisms include a strong record")
-    else:
-        output_indifferent("Include mechanisms are not strong")
-
+    output(
+        (
+            "Include mechanisms include a strong record"
+            if include_strong
+            else "Include mechanisms are not strong"
+        ),
+        "bad" if include_strong else "indifferent",
+    )
     return include_strong
 
 
 def check_spf_include_redirect(spf_record):
-    other_records_strong = False
-    if spf_record.get_redirect_domain() is not None:
-        other_records_strong = is_spf_redirect_record_strong(spf_record)
-
-    if not other_records_strong:
-        other_records_strong = are_spf_include_mechanisms_strong(spf_record)
-
-    return other_records_strong
+    if spf_record.get_redirect_domain():
+        if is_spf_redirect_record_strong(spf_record):
+            return True
+    return are_spf_include_mechanisms_strong(spf_record)
 
 
 def check_spf_all_string(spf_record):
-    strong_spf_all_string = True
-    if spf_record.all_string is not None:
-        if spf_record.all_string == "~all" or spf_record.all_string == "-all":
-            output_indifferent(
-                "SPF record contains an All item: " + spf_record.all_string)
+    if spf_record.all_string:
+        if spf_record.all_string in ["~all", "-all"]:
+            output(
+                f"SPF record contains an All item: {spf_record.all_string}",
+                "indifferent",
+            )
         else:
-            output_good("SPF record All item is too weak: " +
-                        spf_record.all_string)
-            strong_spf_all_string = False
+            output(f"SPF record All item is too weak: {spf_record.all_string}", "good")
+            return check_spf_include_redirect(spf_record)
     else:
-        output_good("SPF record has no All string")
-        strong_spf_all_string = False
-
-    if not strong_spf_all_string:
-        strong_spf_all_string = check_spf_include_redirect(spf_record)
-
-    return strong_spf_all_string
+        output("SPF record has no All string", "good")
+        return check_spf_include_redirect(spf_record)
+    return True
 
 
 def is_spf_record_strong(domain):
-    strong_spf_record = True
     spf_record = spf_lib.SpfRecord.from_domain(domain)
-    if spf_record is not None and spf_record.record is not None:
-        output_info("Found SPF record:")
-        output_info(str(spf_record.record))
-
-        strong_all_string = check_spf_all_string(spf_record)
-        if strong_all_string is False:
-
-            redirect_strength = check_spf_redirect_mechanisms(spf_record)
-            include_strength = check_spf_include_mechanisms(spf_record)
-
-            strong_spf_record = False
-
-            if redirect_strength is True:
-                strong_spf_record = True
-
-            if include_strength is True:
-                strong_spf_record = True
+    if spf_record and spf_record.record:
+        output("Found SPF record:", "info")
+        output(str(spf_record.record), "info")
+        if not check_spf_all_string(spf_record):
+            if not check_spf_redirect_mechanisms(
+                spf_record
+            ) and not check_spf_include_mechanisms(spf_record):
+                return False
     else:
-        output_good(domain + " has no SPF record!")
-        strong_spf_record = False
-
-    return strong_spf_record
+        output(f"{domain} has no SPF record!", "good")
+        return False
+    return True
 
 
 def get_dmarc_record(domain):
     dmarc = dmarc_lib.DmarcRecord.from_domain(domain)
-    if dmarc is not None and dmarc.record is not None:
-        output_info("Found DMARC record:")
-        output_info(str(dmarc.record))
+    if dmarc and dmarc.record:
+        output("Found DMARC record:", "info")
+        output(str(dmarc.record), "info")
     return dmarc
 
 
 def get_dmarc_org_record(base_record):
     org_record = base_record.get_org_record()
-    if org_record is not None:
-        output_info("Found DMARC Organizational record:")
-        output_info(str(org_record.record))
+    if org_record:
+        output("Found DMARC Organizational record:", "info")
+        output(str(org_record.record), "info")
     return org_record
 
 
 def check_dmarc_extras(dmarc_record):
-    if dmarc_record.pct is not None and dmarc_record.pct != str(100):
-        output_indifferent("DMARC pct is set to " +
-                           dmarc_record.pct + "% - might be possible")
-
-    if dmarc_record.rua is not None:
-        output_indifferent(
-            "Aggregate reports will be sent: " + dmarc_record.rua)
-
-    if dmarc_record.ruf is not None:
-        output_indifferent(
-            "Forensics reports will be sent: " + dmarc_record.ruf)
+    if dmarc_record.pct and dmarc_record.pct != "100":
+        output(
+            f"DMARC pct is set to {dmarc_record.pct}% - might be possible",
+            "indifferent",
+        )
+    if dmarc_record.rua:
+        output(f"Aggregate reports will be sent: {dmarc_record.rua}", "indifferent")
+    if dmarc_record.ruf:
+        output(f"Forensics reports will be sent: {dmarc_record.ruf}", "indifferent")
 
 
 def check_dmarc_policy(dmarc_record):
-    policy_strength = False
-    if dmarc_record.policy is not None:
-        if dmarc_record.policy == "reject" or dmarc_record.policy == "quarantine":
-            policy_strength = True
-            output_bad("DMARC policy set to " + dmarc_record.policy)
+    if dmarc_record.policy:
+        if dmarc_record.policy in ["reject", "quarantine"]:
+            output(f"DMARC policy set to {dmarc_record.policy}", "bad")
+            return True
         else:
-            output_good("DMARC policy set to " + dmarc_record.policy)
+            output(f"DMARC policy set to {dmarc_record.policy}", "good")
     else:
-        output_good("DMARC record has no Policy")
-
-    return policy_strength
+        output("DMARC record has no Policy", "good")
+    return False
 
 
 def check_dmarc_org_policy(base_record):
-    policy_strong = False
-
     try:
         org_record = base_record.get_org_record()
-        if org_record is not None and org_record.record is not None:
-            output_info("Found organizational DMARC record:")
-            output_info(str(org_record.record))
-
-            if org_record.subdomain_policy is not None:
+        if org_record and org_record.record:
+            output("Found organizational DMARC record:", "info")
+            output(str(org_record.record), "info")
+            if org_record.subdomain_policy:
                 if org_record.subdomain_policy == "none":
-                    output_good("Organizational subdomain policy set to %(sp)s" % {
-                                "sp": org_record.subdomain_policy})
-                elif org_record.subdomain_policy == "quarantine" or org_record.subdomain_policy == "reject":
-                    output_bad("Organizational subdomain policy explicitly set to %(sp)s" % {
-                        "sp": org_record.subdomain_policy})
-                    policy_strong = True
+                    output(
+                        f"Organizational subdomain policy set to {org_record.subdomain_policy}",
+                        "good",
+                    )
+                elif org_record.subdomain_policy in ["quarantine", "reject"]:
+                    output(
+                        f"Organizational subdomain policy explicitly set to {org_record.subdomain_policy}",
+                        "bad",
+                    )
+                    return True
             else:
-                output_info(
-                    "No explicit organizational subdomain policy. Defaulting to organizational policy")
-                policy_strong = check_dmarc_policy(org_record)
+                output(
+                    "No explicit organizational subdomain policy. Defaulting to organizational policy",
+                    "info",
+                )
+                return check_dmarc_policy(org_record)
         else:
-            output_good("No organizational DMARC record")
-
+            output("No organizational DMARC record", "good")
     except dmarc_lib.OrgDomainException:
-        output_good("No organizational DMARC record")
-
+        output("No organizational DMARC record", "good")
     except Exception as e:
         logging.exception(e)
-
-    return policy_strong
+    return False
 
 
 def is_dmarc_record_strong(domain):
-    dmarc_record_strong = False
-
     dmarc = get_dmarc_record(domain)
-
-    if dmarc is not None and dmarc.record is not None:
-        dmarc_record_strong = check_dmarc_policy(dmarc)
-
-        check_dmarc_extras(dmarc)
-    elif dmarc.get_org_domain() is not None:
-        output_info("No DMARC record found. Looking for organizational record")
-        dmarc_record_strong = check_dmarc_org_policy(dmarc)
+    if dmarc and dmarc.record:
+        if check_dmarc_policy(dmarc):
+            check_dmarc_extras(dmarc)
+            return True
+    elif dmarc.get_org_domain():
+        output("No DMARC record found. Looking for organizational record", "info")
+        return check_dmarc_org_policy(dmarc)
     else:
-        output_good(domain + " has no DMARC record!")
-
-    return dmarc_record_strong
+        output(f"{domain} has no DMARC record!", "good")
+    return False
 
 
 if __name__ == "__main__":
     color_init()
-
     try:
         domain = sys.argv[1]
-
         spf_record_strength = is_spf_record_strong(domain)
-
         dmarc_record_strength = is_dmarc_record_strong(domain)
-
-        if dmarc_record_strength is False:
-            output_good("Spoofing possible for " + domain + "!")
+        if not dmarc_record_strength:
+            output(f"Spoofing possible for {domain}!", "good")
         else:
-            output_bad("Spoofing not possible for " + domain)
-
+            output(f"Spoofing not possible for {domain}", "bad")
     except IndexError:
-        output_error("Usage: " + sys.argv[0] + " [DOMAIN]")
+        output(f"Usage: {sys.argv[0]} [DOMAIN]", "error")

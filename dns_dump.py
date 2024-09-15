@@ -1,5 +1,6 @@
-import dns.resolver
 import sys
+
+import dns.resolver
 from colorama import Fore, Style
 
 if len(sys.argv) != 2:
@@ -7,13 +8,14 @@ if len(sys.argv) != 2:
 else:
     domain = sys.argv[1]
 
-for record_type in ['A', 'AAAA', 'MX', 'NS', 'CNAME', 'SOA', 'TXT', 'PTR']:
+for record_type in ["A", "AAAA", "MX", "NS", "CNAME", "SOA", "TXT", "PTR"]:
     try:
-        answer = dns.resolver.resolve(
-            domain, record_type, raise_on_no_answer=False)
+        answer = dns.resolver.resolve(domain, record_type, raise_on_no_answer=False)
         if answer:
-            print(Fore.GREEN + Style.BRIGHT +
-                  "[*]" + Style.RESET_ALL, f"{record_type} records\n")
+            print(
+                Fore.GREEN + Style.BRIGHT + "[*]" + Style.RESET_ALL,
+                f"{record_type} records\n",
+            )
             for rdata in answer:
                 print(rdata, end="\n\n")
     except Exception as e:
