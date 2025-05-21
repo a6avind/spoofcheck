@@ -1,29 +1,31 @@
-# spoofcheck
+# SpoofCheck
 
-This Project is a shameless rip off [spoofcheck](https://github.com/BishopFox/spoofcheck) which was written in python2.
+A Python tool to check if a domain can be spoofed by analyzing its SPF and DMARC records. This Project is a shameless rip off [spoofcheck](https://github.com/BishopFox/spoofcheck) which was written in python2.
 
 This is my effort to make it compatible with python3.
 
-A program that checks if a domain can be spoofed from. The program checks SPF and DMARC records for weak configurations that allow spoofing.
+- Analyzes SPF (Sender Policy Framework) records
+- Checks DMARC (Domain-based Message Authentication, Reporting, and Conformance) policies
+- Identifies weak configurations that could allow email spoofing
+- Examines organizational DMARC records
 
-Additionally, it will alert if the domain has DMARC configuration that sends mail or HTTP requests on failed SPF/DKIM emails.
+
 
 ## Usage
 
-`./spoofcheck.py [DOMAIN]`
+```bash
+python3 spoofcheck.py example.com
+```
 
-Domains are spoofable if any of the following conditions are met:
+## What Makes a Domain Spoofable?
 
-- Lack of an SPF or DMARC record
-- SPF record never specifies `~all` or `-all`
-- DMARC policy is set to `p=none` or is nonexistent
+A domain is considered spoofable if any of these conditions are met:
 
-## Dependencies
-
-- `dnspython`
-- `colorama`
-- `py-emailprotections`
-- `tldextract`
+1. No SPF record exists
+2. SPF record exists but never specifies `~all` or `-all`
+3. No DMARC record exists
+4. DMARC policy is set to `p=none`
+5. Organizational DMARC record is weak or nonexistent
 
 ## Setup
 
