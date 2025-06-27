@@ -196,7 +196,6 @@ if __name__ == "__main__":
             output(f"Spoofing not possible for {domain}", "bad")
 
     except Exception as e:
-        logger.exception("An unexpected error occurred")
         output(f"Error: {str(e)}", "error")
         sys.exit(1)
     except IndexError:
