@@ -185,8 +185,11 @@ def check_domain(domain: str) -> Tuple[bool, bool, bool]:
 
 
 if __name__ == "__main__":
+    color_init()
+    if len(sys.argv) < 2:
+        output(f"Usage: {sys.argv[0]} [DOMAIN]", "error")
+        sys.exit(1)
     try:
-        color_init()
         domain = sys.argv[1]
         is_spoofable, spf_strong, dmarc_strong = check_domain(domain)
 
@@ -196,8 +199,6 @@ if __name__ == "__main__":
             output(f"Spoofing not possible for {domain}", "bad")
 
     except Exception as e:
-        logger.exception("An unexpected error occurred")
+        logging.exception("An unexpected error occurred")
         output(f"Error: {str(e)}", "error")
         sys.exit(1)
-    except IndexError:
-        output(f"Usage: {sys.argv[0]} [DOMAIN]", "error")
